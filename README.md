@@ -184,3 +184,4 @@ To reset: clear site data from DevTools or call `localStorage.clear()` in the co
 | Max searches/day | ~100 |
 
 If you hit the limit you will see: *"API quota exceeded or key invalid."*
+ 
