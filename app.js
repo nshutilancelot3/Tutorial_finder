@@ -522,3 +522,4 @@ function showToast(msg, type) {
   el.style.background = type === 'warn' ? '#d97706' : '#1e1b4b';
   new bootstrap.Toast(el, { delay: 3000 }).show();
 }
+ 
