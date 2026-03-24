@@ -150,3 +150,4 @@ const COURSE_MAP = { SE, IBT, EL };
 function getCourses(program, year) {
   return COURSE_MAP[program]?.[year] || [];
 }
+ 
