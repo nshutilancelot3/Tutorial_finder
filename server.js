@@ -95,4 +95,3 @@ app.listen(PORT, function () {
   console.log('  🔑  API key: ' + (process.env.YOUTUBE_API_KEY && process.env.YOUTUBE_API_KEY !== 'YOUR_YOUTUBE_API_KEY_HERE' ? 'LOADED ✓' : 'MISSING ✗ — add to .env'));
   console.log('');
 });
- 
