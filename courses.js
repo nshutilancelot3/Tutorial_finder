@@ -7,7 +7,7 @@
 const ALU_PROGRAMS = {
   SE:  { label: 'Software Engineering',          icon: '💻', color: '#6366f1' },
   IBT: { label: 'International Business & Trade', icon: '🌍', color: '#f59e0b' },
-  EL:  { label: 'Entrepreneurial Leadership',     icon: '🚀', color: '#10b981' },
+  EL:  { label: 'Entrepreneurial Leadership',     icon: '📈', color: '#10b981' },
 };
 
 /* ─── SOFTWARE ENGINEERING ──────────────────────────────────── */
@@ -84,7 +84,7 @@ const IBT = {
     { id:'ibt_305', name:'Sustainable Business',           icon:'♻️', color:'#ef4444', topics:['sustainable business practices','ESG investing green business strategy'] },
     { id:'ibt_306', name:'E-Commerce & Digital Trade',     icon:'🛒', color:'#06b6d4', topics:['ecommerce tutorial','digital trade platforms Shopify Amazon FBA'] },
     { id:'ibt_307', name:'Negotiation & Conflict',         icon:'🤜', color:'#f97316', topics:['negotiation skills tutorial','conflict resolution business win-win'] },
-    { id:'ibt_308', name:'Entrepreneurship',               icon:'🚀', color:'#64748b', topics:['entrepreneurship tutorial','business plan writing startup funding Africa'] },
+    { id:'ibt_308', name:'Entrepreneurship',               icon:'📈', color:'#64748b', topics:['entrepreneurship tutorial','business plan writing startup funding Africa'] },
   ],
   4: [
     { id:'ibt_401', name:'Global Leadership',              icon:'🌐', color:'#3b82f6', topics:['global leadership tutorial','international management skills cultures'] },
@@ -101,7 +101,7 @@ const IBT = {
 /* ─── ENTREPRENEURIAL LEADERSHIP ────────────────────────────── */
 const EL = {
   1: [
-    { id:'el_101', name:'Foundations of Entrepreneurship', icon:'🚀', color:'#3b82f6', topics:['entrepreneurship foundations tutorial','what is entrepreneurship startup basics'] },
+    { id:'el_101', name:'Foundations of Entrepreneurship', icon:'📈', color:'#3b82f6', topics:['entrepreneurship foundations tutorial','what is entrepreneurship startup basics'] },
     { id:'el_102', name:'Leadership & Self Development',   icon:'🌟', color:'#f59e0b', topics:['leadership development tutorial','self development personal growth emotional intelligence'] },
     { id:'el_103', name:'Communication & Storytelling',    icon:'🗣️', color:'#8b5cf6', topics:['communication skills tutorial','storytelling for business public speaking'] },
     { id:'el_104', name:'Critical Thinking & Creativity',  icon:'🧠', color:'#10b981', topics:['critical thinking tutorial','creative thinking design thinking explained'] },

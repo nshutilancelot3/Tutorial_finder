@@ -6,10 +6,15 @@
   <title>Tuto Archive — ALU Study Resources</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
+  <!-- OFFLINE BANNER -->
+  <div class="offline-banner" id="offlineBanner">
+    <i class="bi bi-wifi-off me-2"></i>You are offline — searches will not work until your connection is restored.
+  </div>
 
   <!-- ── PROGRAM SELECTOR SCREEN ── -->
   <div id="selectorScreen" class="selector-screen">
@@ -43,7 +48,7 @@
         </div>
 
         <div class="program-card" data-program="EL" onclick="selectProgram(this)">
-          <div class="program-emoji">🚀</div>
+          <div class="program-emoji">📈</div>
           <div class="program-label">Entrepreneurial Leadership</div>
           <div class="program-desc">Venture creation, fundraising, brand building, leadership</div>
         </div>
@@ -144,6 +149,16 @@
         <div class="mb-4">
           <p class="mb-2" style="font-size:.75rem;font-weight:700;color:var(--muted)">QUICK SEARCHES</p>
           <div class="d-flex flex-wrap gap-2" id="quickChips"></div>
+        </div>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3" id="sortFilterBar" style="display:none!important">
+          <div class="d-flex align-items-center gap-2">
+            <span style="font-size:.75rem;font-weight:700;color:var(--muted)">SORT BY</span>
+            <select id="sortOrder" class="sort-select" onchange="onSortChange()">
+              <option value="relevance">Most Relevant</option>
+              <option value="date">Newest First</option>
+            </select>
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-wrap" id="yearFilterChips"></div>
         </div>
         <div id="searchResults"></div>
       </div>

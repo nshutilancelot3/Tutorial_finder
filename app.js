@@ -14,14 +14,20 @@
 ═══════════════════════════════════════════════════════════════ */
 
 /* ─── STATE ──────────────────────────────────────────────── */
-var currentProgram   = localStorage.getItem('ta_program') || null;
-var currentYear      = parseInt(localStorage.getItem('ta_year')) || null;
-var selectedProgram  = null;
-var selectedYear     = null;
-var savedVideos      = [];
-var activeTab        = 'courses';
-var videoModalInst   = null;
-var currentModalVid  = null;
+var currentProgram      = localStorage.getItem('ta_program') || null;
+var currentYear         = parseInt(localStorage.getItem('ta_year')) || null;
+var selectedProgram     = null;
+var selectedYear        = null;
+var savedVideos         = [];
+var activeTab           = 'courses';
+var videoModalInst      = null;
+var currentModalVid     = null;
+
+/* search state */
+var lastSearchQuery    = '';
+var lastSearchResults  = [];
+var searchSortOrder    = 'relevance';
+var searchYearFilter   = 'all';
 
 /* ─── QUICK SEARCH CHIPS PER PROGRAM ─────────────────────── */
 var QUICK = {
@@ -46,6 +52,17 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   document.getElementById('searchTopicInput').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') doTopicSearch();
+  });
+
+  // Offline / online detection
+  function updateOfflineBanner() {
+    document.getElementById('offlineBanner').classList.toggle('show', !navigator.onLine);
+    if (!navigator.onLine) showToast('No internet connection.', 'warn');
+  }
+  window.addEventListener('offline', updateOfflineBanner);
+  window.addEventListener('online',  function () {
+    document.getElementById('offlineBanner').classList.remove('show');
+    showToast('Back online!');
   });
 });
 
@@ -137,6 +154,10 @@ function switchTab(btn, tab) {
 }
 
 function switchTabSilent(tab) {
+  if (tab !== 'search') {
+    lastSearchQuery = ''; lastSearchResults = [];
+    document.getElementById('sortFilterBar').style.display = 'none';
+  }
   activeTab = tab;
   ['courses','search','saved'].forEach(function (t) {
     document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1) + 'Content')
@@ -182,26 +203,24 @@ var _loadedCourses = {};
 var _openCourse    = null;
 
 function toggleCourseVideos(courseId) {
-  var vEl  = document.getElementById('videos_' + courseId);
-  var chev = document.getElementById('chev_'   + courseId);
-  var mEl  = document.getElementById('meta_'   + courseId);
-  var isOpen = vEl.style.display !== 'none';
+  var vEl    = document.getElementById('videos_' + courseId);
+  var chev   = document.getElementById('chev_'   + courseId);
+  var mEl    = document.getElementById('meta_'   + courseId);
+  var isOpen = vEl.style.display === 'block';
 
-  // Close whichever card is currently open (if different)
-  if (_openCourse && _openCourse !== courseId) {
-    var prevV = document.getElementById('videos_' + _openCourse);
-    var prevC = document.getElementById('chev_'   + _openCourse);
-    if (prevV) prevV.style.display = 'none';
-    if (prevC) prevC.style.transform = 'rotate(0deg)';
-  }
+  // Close ALL course cards first
+  document.querySelectorAll('.course-videos').forEach(function (el) {
+    el.style.display = 'none';
+  });
+  document.querySelectorAll('[id^="chev_"]').forEach(function (el) {
+    el.style.transform = 'rotate(0deg)';
+  });
 
   if (isOpen) {
-    // Collapse current
-    vEl.style.display = 'none';
-    if (chev) chev.style.transform = 'rotate(0deg)';
+    // Was open — leave it closed
     _openCourse = null;
   } else {
-    // Expand current
+    // Open this one
     vEl.style.display = 'block';
     if (chev) chev.style.transform = 'rotate(180deg)';
     _openCourse = courseId;
@@ -253,12 +272,25 @@ async function fetchVideos(course) {
    YOUTUBE SEARCH — proxied through /api/search on the server
    API key stays in .env on the server, never reaches the browser
 ═══════════════════════════════════════════════════════════════ */
-async function apiSearch(query, max) {
-  max = max || 9;
-  var res  = await fetch('/api/search?q=' + encodeURIComponent(query) + '&max=' + max);
-  var data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Search failed.');
-  return data.videos || [];
+async function apiSearch(query, max, order) {
+  max   = max   || 9;
+  order = order || 'relevance';
+  var controller = new AbortController();
+  var timer = setTimeout(function () { controller.abort(); }, 12000);
+  try {
+    var res  = await fetch(
+      '/api/search?q=' + encodeURIComponent(query) + '&max=' + max + '&order=' + order,
+      { signal: controller.signal }
+    );
+    clearTimeout(timer);
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Search failed.');
+    return data.videos || [];
+  } catch (err) {
+    clearTimeout(timer);
+    if (err.name === 'AbortError') throw new Error('Request timed out. Please try again.');
+    throw err;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -281,29 +313,82 @@ async function doTopicSearch() {
   var res = document.getElementById('searchResults');
 
   if (!q) { showToast('Enter a topic to search.', 'warn'); return; }
+  if (!navigator.onLine) { showToast('No internet connection.', 'warn'); return; }
+
+  searchSortOrder  = document.getElementById('sortOrder').value;
+  searchYearFilter = 'all';
 
   res.innerHTML =
     '<div class="d-flex align-items-center gap-2 py-3 text-muted" style="font-size:.84rem">' +
     '<div class="spinner-border spinner-border-sm" style="color:var(--accent)"></div>' +
     'Searching for <strong>' + esc(q) + '</strong>…</div>';
 
+  document.getElementById('sortFilterBar').style.display = 'none';
+
   try {
-    var videos = await apiSearch(q, 12);
-
-    if (!videos.length) {
-      res.innerHTML = emptyState('bi-search', 'No results for "' + esc(q) + '".');
-      return;
-    }
-
-    res.innerHTML =
-      '<p class="mb-3" style="font-size:.8rem;color:var(--muted)">' +
-        videos.length + ' results for <strong>' + esc(q) + '</strong>' +
-      '</p>' +
-      '<div class="video-grid">' + videos.map(videoCardHTML).join('') + '</div>';
-
+    var videos = await apiSearch(q, 12, searchSortOrder);
+    lastSearchQuery   = q;
+    lastSearchResults = videos;
+    renderSearchResults();
   } catch (err) {
     res.innerHTML = errMsg(err.message);
+    document.getElementById('sortFilterBar').style.display = 'none';
   }
+}
+
+function onSortChange() {
+  searchSortOrder = document.getElementById('sortOrder').value;
+  if (!lastSearchQuery) return;
+  // Re-fetch with new sort order
+  document.getElementById('searchTopicInput').value = lastSearchQuery;
+  doTopicSearch();
+}
+
+function setYearFilter(year) {
+  searchYearFilter = year;
+  renderSearchResults();
+}
+
+function renderSearchResults() {
+  var res    = document.getElementById('searchResults');
+  var bar    = document.getElementById('sortFilterBar');
+  var videos = lastSearchResults;
+
+  if (!videos.length) {
+    res.innerHTML = emptyState('bi-search', 'No results for "' + esc(lastSearchQuery) + '".');
+    bar.style.display = 'none';
+    return;
+  }
+
+  // Build year filter chips from unique years in results
+  var years = videos.map(function (v) { return v.year; })
+    .filter(function (y, i, a) { return y && a.indexOf(y) === i; })
+    .sort(function (a, b) { return b - a; });
+
+  var chipsHTML = '<span style="font-size:.72rem;font-weight:700;color:var(--muted)">YEAR</span>' +
+    '<button class="year-chip' + (searchYearFilter === 'all' ? ' active' : '') + '" onclick="setYearFilter(\'all\')">All</button>';
+  years.forEach(function (y) {
+    chipsHTML += '<button class="year-chip' + (searchYearFilter === y ? ' active' : '') + '" onclick="setYearFilter(\'' + y + '\')">' + y + '</button>';
+  });
+  document.getElementById('yearFilterChips').innerHTML = chipsHTML;
+  bar.style.removeProperty('display');
+
+  // Apply year filter
+  var filtered = searchYearFilter === 'all'
+    ? videos
+    : videos.filter(function (v) { return v.year === searchYearFilter; });
+
+  if (!filtered.length) {
+    res.innerHTML = emptyState('bi-filter', 'No results from ' + searchYearFilter + '. Try "All".');
+    return;
+  }
+
+  res.innerHTML =
+    '<p class="mb-3" style="font-size:.8rem;color:var(--muted)">' +
+      filtered.length + ' result' + (filtered.length !== 1 ? 's' : '') +
+      ' for <strong>' + esc(lastSearchQuery) + '</strong>' +
+    '</p>' +
+    '<div class="video-grid">' + filtered.map(videoCardHTML).join('') + '</div>';
 }
 
 /* ═══════════════════════════════════════════════════════════════

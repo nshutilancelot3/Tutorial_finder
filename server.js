@@ -24,6 +24,7 @@ app.use(express.static(path.join(__dirname)));
 app.get('/api/search', function (req, res) {
   var query      = req.query.q;
   var maxResults = req.query.max || 9;
+  var order      = ['relevance', 'date'].includes(req.query.order) ? req.query.order : 'relevance';
   var apiKey     = process.env.YOUTUBE_API_KEY;
 
   if (!apiKey || apiKey === 'YOUR_YOUTUBE_API_KEY_HERE') {
@@ -38,17 +39,19 @@ app.get('/api/search', function (req, res) {
 
   var params = new URLSearchParams({
     part:              'snippet',
-    q:                 query,
+    q:                 query + ' -#shorts -shorts tutorial',
     type:              'video',
-    maxResults:        maxResults,
+    maxResults:        Math.min(Number(maxResults) + 6, 25),
+    order:             order,
     videoEmbeddable:   'true',
+    videoDuration:     'medium',
     relevanceLanguage: 'en',
     key:               apiKey,
   });
 
   var ytUrl = 'https://www.googleapis.com/youtube/v3/search?' + params.toString();
 
-  https.get(ytUrl, function (ytRes) {
+  var ytReq = https.get(ytUrl, function (ytRes) {
     var data = '';
     ytRes.on('data', function (chunk) { data += chunk; });
     ytRes.on('end', function () {
@@ -61,16 +64,22 @@ app.get('/api/search', function (req, res) {
           });
         }
 
-        var videos = (parsed.items || []).map(function (item) {
-          var thumbs = item.snippet.thumbnails;
-          return {
-            id:      item.id.videoId,
-            title:   item.snippet.title,
-            channel: item.snippet.channelTitle,
-            thumb:   ((thumbs.medium || thumbs.default || {}).url) || '',
-            year:    (item.snippet.publishedAt || '').slice(0, 4),
-          };
-        });
+        var videos = (parsed.items || [])
+          .filter(function (item) {
+            var title = (item.snippet.title || '').toLowerCase();
+            return !title.includes('#shorts') && !title.includes(' shorts') && !title.startsWith('shorts');
+          })
+          .map(function (item) {
+            var thumbs = item.snippet.thumbnails;
+            return {
+              id:      item.id.videoId,
+              title:   item.snippet.title,
+              channel: item.snippet.channelTitle,
+              thumb:   ((thumbs.medium || thumbs.default || {}).url) || '',
+              year:    (item.snippet.publishedAt || '').slice(0, 4),
+            };
+          })
+          .slice(0, Number(maxResults));
 
         res.json({ videos: videos });
 
@@ -80,6 +89,11 @@ app.get('/api/search', function (req, res) {
     });
   }).on('error', function (e) {
     res.status(500).json({ error: 'Failed to reach YouTube API: ' + e.message });
+  });
+
+  ytReq.setTimeout(10000, function () {
+    ytReq.destroy();
+    res.status(504).json({ error: 'YouTube API request timed out. Try again.' });
   });
 });
 
