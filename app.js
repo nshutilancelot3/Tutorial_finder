@@ -31,9 +31,7 @@ var searchYearFilter   = 'all';
 
 /* ─── QUICK SEARCH CHIPS PER PROGRAM ─────────────────────── */
 var QUICK = {
-  SE:  ['React tutorial','Node.js API','Python basics','Git and GitHub','Docker','System design','Data structures','SQL tutorial','Linux terminal','TypeScript'],
-  IBT: ['International trade','Supply chain','Financial modelling','Forex basics','Business negotiation','Digital marketing','Trade finance','WTO explained','Market entry','African trade'],
-  EL:  ['Validate startup idea','Pitch deck','Fundraising startups','Design thinking','Product market fit','Personal branding','Leadership skills','Business model canvas','Lean startup','Social entrepreneurship'],
+  SE: ['React tutorial','Node.js API','Python basics','Git and GitHub','Docker','System design','Data structures','SQL tutorial','Linux terminal','TypeScript'],
 };
 
 /* ═══════════════════════════════════════════════════════════════

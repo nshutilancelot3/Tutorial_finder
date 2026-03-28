@@ -26,7 +26,7 @@
 
 ## Overview
 
-**Tuto Archive** is a lightweight, single-page web application that helps African Leadership University (ALU) students find relevant YouTube tutorials for their enrolled courses. It uses the **YouTube Data API v3** to fetch videos, organised per program and year of study.
+**Tuto Archive** is a lightweight, single-page web application that helps African Leadership University (ALU) Software Engineering students find relevant YouTube tutorials for their enrolled courses. It uses the **YouTube Data API v3** to fetch videos, organised by year of study.
 
 The app uses a **Node.js/Express** backend to proxy all YouTube API requests, ensuring the API key is never exposed to the browser. Students pick their program and year on a selector screen, then browse accordion-style course cards, search freely, sort and filter results, and bookmark videos across sessions using `localStorage`.
 
@@ -194,10 +194,8 @@ Clicking the bookmark icon calls `toggleSave()`, which writes the video object t
 | Code | Program | Years |
 |---|---|---|
 | `SE` | Software Engineering | 1 – 4 |
-| `IBT` | International Business & Trade | 1 – 4 |
-| `EL` | Entrepreneurial Leadership | 1 – 4 |
 
-Each program has **8 courses per year** across **4 years** — 32 courses per program, 96 total.
+**8 courses per year** across **4 years** — 32 courses total.
 
 ---
 
@@ -225,8 +223,6 @@ All user data lives **entirely in the browser**. The server has no database.
 | `ta_program` | Selected program code (`SE`, `IBT`, or `EL`) |
 | `ta_year` | Selected year (`1`–`4`) |
 | `ta_saved_SE` | JSON array of bookmarked videos for Software Engineering |
-| `ta_saved_IBT` | JSON array of bookmarked videos for International Business & Trade |
-| `ta_saved_EL` | JSON array of bookmarked videos for Entrepreneurial Leadership |
 
 To inspect: open DevTools (`F12`) → **Application** → **Local Storage**.
 To reset: run `localStorage.clear()` in the DevTools console.
