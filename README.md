@@ -1,12 +1,15 @@
 # Tuto Archive
 
-> YouTube study-resource finder tailored for **ALU students** — browse course videos by program and year, search any topic, and bookmark tutorials for later.
+> A YouTube study-resource finder built for **ALU students** — browse curated course videos by program and year, search any topic, filter results, and bookmark tutorials for later.
+
+**Live:** [https://tutoarchive.lancewreal.tech](https://tutoarchive.lancewreal.tech)
 
 ---
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Demo](#demo)
 - [Features](#features)
 - [Project Structure](#project-structure)
 - [Getting Started (Local)](#getting-started-local)
@@ -23,7 +26,22 @@
 
 ## Overview
 
-**Tuto Archive** is a lightweight, single-page web app (no frontend framework, no build step) that pulls YouTube videos through the **YouTube Data API v3** and organises them per ALU program and year of study. It uses a small **Node.js/Express** backend to proxy API requests, keeping the YouTube API key secure on the server. Students can select their program and year, browse videos for their enrolled courses, search and filter results, and bookmark videos to a personal saved list.
+**Tuto Archive** is a lightweight, single-page web application that helps African Leadership University (ALU) students find relevant YouTube tutorials for their enrolled courses. It uses the **YouTube Data API v3** to fetch videos, organised per program and year of study.
+
+The app uses a **Node.js/Express** backend to proxy all YouTube API requests, ensuring the API key is never exposed to the browser. Students pick their program and year on a selector screen, then browse accordion-style course cards, search freely, sort and filter results, and bookmark videos across sessions using `localStorage`.
+
+---
+
+## Demo
+
+> Watch the 2-minute demo: **[YouTube Demo Link]**
+
+The demo walks through:
+- Selecting a program and year on the selector screen
+- Browsing course video cards
+- Searching a topic, sorting by Newest First, filtering by year
+- Bookmarking a video and viewing it in the Saved tab
+- Accessing the live deployment via the load balancer
 
 ---
 
@@ -31,19 +49,20 @@
 
 | Feature | Description |
 |---|---|
-| **Program Selection** | Pick your ALU program (SE, IBT, or EL) and year (1–4) on the landing screen |
-| **Course Catalogue** | Videos fetched from YouTube for each course in your program and year |
-| **Global Search** | Header search bar works across all tabs |
-| **Topic Search** | Dedicated Search tab with free-text queries |
-| **Sort Results** | Sort search results by Most Relevant or Newest First |
-| **Filter by Year** | Filter search results by publication year using one-click chips |
-| **Quick Chips** | One-click topic shortcuts tailored to each program |
-| **In-App Video Player** | Videos play inside a modal — no need to leave the page |
-| **Save & Bookmark** | Bookmark any video; persists in localStorage across sessions |
-| **Toast Notifications** | Feedback for every user action |
-| **Skeleton Loaders** | Smooth loading placeholders while videos are fetched |
-| **Offline Detection** | Banner and toast alert when the user loses internet connection |
-| **Responsive UI** | Works on desktop and mobile |
+| **Program Selector** | Choose your ALU program (SE, IBT, or EL) and year (1–4) on the landing screen |
+| **Course Catalogue** | Accordion cards for each course — click to load YouTube videos on demand |
+| **Global Search** | Header search bar accessible from any tab |
+| **Topic Search** | Dedicated Search tab with free-text queries and quick-chip shortcuts |
+| **Sort Results** | Sort by Most Relevant or Newest First — passed directly to the YouTube API |
+| **Filter by Year** | One-click year filter chips narrow results client-side after fetching |
+| **Shorts Filtering** | YouTube Shorts are excluded via duration filter, query exclusion, and title matching |
+| **In-App Video Player** | Videos open in a Bootstrap modal — no redirect to YouTube |
+| **Save & Bookmark** | Bookmark any video; persists in `localStorage` across browser sessions |
+| **Toast Notifications** | Contextual feedback for every user action |
+| **Skeleton Loaders** | Animated placeholders while videos are being fetched |
+| **Offline Detection** | Red banner and blocked searches when internet connection is lost |
+| **Error Handling** | Inline styled error messages for API failures, timeouts, and quota exhaustion |
+| **Responsive UI** | Works on desktop and mobile browsers |
 
 ---
 
@@ -51,23 +70,29 @@
 
 ```
 Tutorial_finder/
-├── index.html          # Single-page shell — program selector screen + app screen
-├── style.css           # All custom styles (CSS variables, components, animations)
+├── index.html          # Single-page shell — selector screen + app screen + modal
+├── style.css           # All styles: CSS variables, components, animations, responsive layout
 ├── app.js              # Core logic: program selection, search, sort/filter, save, render
-├── courses.js          # Course catalogue data per program + year
-├── server.js           # Express server — proxies YouTube API requests
-├── package.json        # Dependencies: express, dotenv
-├── .env                # Your YouTube API key — never commit (git-ignored)
+├── courses.js          # Course catalogue — 3 programs × 4 years × 8 courses each
+├── server.js           # Express server — proxies YouTube API requests securely
+├── package.json        # Node.js dependencies: express, dotenv
+├── .env                # YouTube API key (git-ignored — never committed)
+├── .gitignore          # Excludes .env, node_modules, .DS_Store, logs
 └── nginx/
-    ├── web-server.conf     # Nginx reverse-proxy config for Web01 and Web02
-    └── load-balancer.conf  # Nginx load-balancer config for Lb01
+    ├── web-server.conf     # Nginx reverse-proxy config used on Web01 and Web02
+    └── load-balancer.conf  # HAProxy config reference for Lb01
 ```
 
 ---
 
 ## Getting Started (Local)
 
-### 1 — Clone the repo
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) v16 or higher
+- A YouTube Data API v3 key (see [YouTube API Setup](#youtube-api-setup))
+
+### 1 — Clone the repository
 
 ```bash
 git clone <repo-url>
@@ -80,7 +105,7 @@ cd Tutorial_finder
 npm install
 ```
 
-### 3 — Set up your YouTube API key
+### 3 — Add your YouTube API key
 
 Create a `.env` file in the project root:
 
@@ -89,6 +114,7 @@ YOUTUBE_API_KEY=your_api_key_here
 ```
 
 > See [YouTube API Setup](#youtube-api-setup) for how to get a free key.
+> The `.env` file is listed in `.gitignore` and will never be accidentally committed.
 
 ### 4 — Start the server
 
@@ -119,7 +145,7 @@ User opens http://localhost:3000
   │  └──────┬───┘  └───┬────┘  └────┬────┘  │
   │         │           │            │       │
   │   Fetch via    Free-text    Bookmarked   │
-  │   /api/search  + sort/filter from any tab│
+  │   /api/search  + sort/filter from any   │
   └──────────────────────────────────────────┘
                     │
                     ▼
@@ -130,92 +156,93 @@ User opens http://localhost:3000
 ```
 
 ### Program Selection
-- Users select their ALU **program** (SE, IBT, EL) and **year** (1–4).
-- The selection is stored in `localStorage` as `ta_program` and `ta_year` and persists across sessions.
+Users select their ALU **program** (SE, IBT, EL) and **year** (1–4) on the selector screen. The selection is saved to `localStorage` (`ta_program`, `ta_year`) and restored on every subsequent visit.
 
 ### Course Videos
-- On load, `loadCourses()` reads the user's program and year from `courses.js`.
-- Each course card fetches videos from the backend `/api/search` endpoint.
-- Skeleton loaders are shown while requests are in flight.
+Each course card in the My Courses tab fetches videos lazily — only when a student clicks to expand it. This preserves API quota by avoiding bulk fetches on page load.
 
-### API Proxy
-- The browser never calls YouTube directly — all requests go to `/api/search` on the Express server.
-- The server attaches the API key from `.env` before forwarding to YouTube, so the key is never exposed to the browser.
+### API Proxy (Security)
+The browser never calls YouTube directly. All requests go to `/api/search` on the Express server, which attaches the API key from `.env` before forwarding to YouTube. The key is never visible in the browser's network tab or JavaScript source.
+
+### Shorts Filtering
+YouTube Shorts (vertical videos ≤60 seconds) are excluded using three layers:
+1. `videoDuration=medium` — YouTube API only returns videos between 4 and 20 minutes
+2. `-#shorts -shorts` appended to every query — instructs YouTube's algorithm to deprioritise shorts content
+3. Client-side title filter — drops any result whose title contains "shorts"
 
 ### Search, Sort & Filter
-- Results can be sorted by **Most Relevant** (default) or **Newest First** — the sort order is passed to the YouTube API.
-- After results load, **year filter chips** appear to narrow results by publication year (client-side).
-- Quick-chip buttons provide one-click searches for topics relevant to each program.
+- **Sort** by Most Relevant (default) or Newest First — the `order` parameter is passed to the YouTube API, triggering a fresh fetch.
+- **Year filter chips** appear after results load and filter client-side to avoid extra API calls.
+- **Quick-chip shortcuts** provide one-click searches for topics relevant to each program.
 
 ### In-App Video Player
-- Clicking a video opens a Bootstrap modal with an embedded YouTube iframe.
-- No redirect to YouTube — playback stays inside the app.
+Clicking a video thumbnail opens a Bootstrap modal with an embedded YouTube `<iframe>`. Playback stays inside the app.
 
 ### Save / Unsave
-- Clicking the bookmark icon on any video calls `toggleSave()`.
-- Saved videos are written to `localStorage` and the bookmark icon updates instantly across all views.
+Clicking the bookmark icon calls `toggleSave()`, which writes the video object to `localStorage` under a program-specific key. The bookmark icon updates immediately across all tabs.
 
 ### Error Handling
-- Network requests have a **12-second client-side timeout** and a **10-second server-side timeout**.
-- Offline detection via the browser's `navigator.onLine` API — a red banner appears at the top and searches are blocked with a toast message.
-- API errors (quota exceeded, invalid key, parse failures) are caught and displayed in-line with a styled error box.
+- **12-second client-side timeout** via `AbortController`
+- **10-second server-side timeout** via `request.setTimeout()`
+- **Offline detection** via `navigator.onLine` — a red banner appears and all searches are blocked with a descriptive toast
+- **API errors** (quota exceeded, invalid key, YouTube outage) are caught and shown inline with a styled error block
 
 ---
 
 ## Programs Supported
 
-| Code | Program |
-|---|---|
-| `SE` | Software Engineering |
-| `IBT` | International Business & Trade |
-| `EL` | Entrepreneurial Leadership |
+| Code | Program | Years |
+|---|---|---|
+| `SE` | Software Engineering | 1 – 4 |
+| `IBT` | International Business & Trade | 1 – 4 |
+| `EL` | Entrepreneurial Leadership | 1 – 4 |
 
-Each program has **8 courses per year** across **4 years** (32 courses total per program).
+Each program has **8 courses per year** across **4 years** — 32 courses per program, 96 total.
 
 ---
 
 ## YouTube API Setup
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a project (or select an existing one).
-3. Enable **YouTube Data API v3**.
-4. Go to **Credentials → Create API Key**.
-5. Copy the key into your `.env` file:
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a project or select an existing one
+3. Navigate to **APIs & Services → Library**
+4. Search for and enable **YouTube Data API v3**
+5. Go to **APIs & Services → Credentials → Create Credentials → API Key**
+6. Copy the key into your `.env` file:
 
 ```
 YOUTUBE_API_KEY=your_key_here
 ```
 
-> `.env` is listed in `.gitignore` — it will never be accidentally committed.
-
 ---
 
 ## Data Storage
 
-All user data lives **entirely in the browser**. The server holds no database.
+All user data lives **entirely in the browser**. The server has no database.
 
-| Key | Contents |
+| localStorage Key | Contents |
 |---|---|
-| `ta_program` | Selected program code (SE, IBT, or EL) |
-| `ta_year` | Selected year (1–4) |
-| `ta_saved_SE` | Bookmarked videos for SE program |
-| `ta_saved_IBT` | Bookmarked videos for IBT program |
-| `ta_saved_EL` | Bookmarked videos for EL program |
+| `ta_program` | Selected program code (`SE`, `IBT`, or `EL`) |
+| `ta_year` | Selected year (`1`–`4`) |
+| `ta_saved_SE` | JSON array of bookmarked videos for Software Engineering |
+| `ta_saved_IBT` | JSON array of bookmarked videos for International Business & Trade |
+| `ta_saved_EL` | JSON array of bookmarked videos for Entrepreneurial Leadership |
 
 To inspect: open DevTools (`F12`) → **Application** → **Local Storage**.
-To reset: clear site data from DevTools or run `localStorage.clear()` in the console.
+To reset: run `localStorage.clear()` in the DevTools console.
 
 ---
 
 ## API Quota
 
-| Action | Units used |
+| Action | Units consumed |
 |---|---|
-| Search request | ~100 units |
+| One search request | ~100 units |
 | Free daily quota | 10,000 units |
-| Max searches/day | ~100 |
+| Approx. searches per day | ~100 |
 
-If you hit the limit you will see: *"API quota exceeded or key invalid."*
+If the daily quota is exhausted you will see: *"API quota exceeded or key invalid."*
+The quota resets every day at midnight Pacific Time.
 
 ---
 
@@ -223,61 +250,65 @@ If you hit the limit you will see: *"API quota exceeded or key invalid."*
 
 The application is live at **[https://tutoarchive.lancewreal.tech](https://tutoarchive.lancewreal.tech)**
 
-> You can also access each web server directly: [http://44.211.45.35](http://44.211.45.35) and [http://44.211.161.173](http://44.211.161.173)
-
 | Server | Role | IP |
 |---|---|---|
-| Web01 | App server (Node.js + Nginx) | `44.211.45.35` |
-| Web02 | App server (Node.js + Nginx) | `44.211.161.173` |
-| Lb01 | Load balancer (HAProxy) | `13.220.156.66` |
+| Web01 | App server — Node.js + Nginx | `44.211.45.35` |
+| Web02 | App server — Node.js + Nginx | `44.211.161.173` |
+| Lb01 | Load balancer — HAProxy | `13.220.156.66` |
 
 ### Architecture
 
 ```
-Internet / tutoarchive.lancewreal.tech
-            │
-            ▼
-    Lb01 — HAProxy (13.220.156.66)
-    HTTP → HTTPS redirect
-    Round-robin load balancing
-            │                  │
-            ▼                  ▼
-       Web01                Web02
-  44.211.45.35         44.211.161.173
-  Nginx → Node.js      Nginx → Node.js
-  PM2 (port 3000)      PM2 (port 3000)
+         Internet — tutoarchive.lancewreal.tech
+                          │
+                          ▼
+              Lb01 — HAProxy (13.220.156.66)
+              ┌──────────────────────────────┐
+              │  HTTP → HTTPS (301 redirect) │
+              │  Round-robin load balancing  │
+              └──────────┬───────────────────┘
+                         │
+           ┌─────────────┘─────────────┐
+           ▼                           ▼
+         Web01                       Web02
+    44.211.45.35               44.211.161.173
+    Nginx (port 80)            Nginx (port 80)
+         │                           │
+         ▼                           ▼
+    Node.js/PM2                 Node.js/PM2
+      (port 3000)                 (port 3000)
 ```
 
 ---
 
 ### Step 1 — Install Node.js and PM2 on Web01 and Web02
 
-Run the following on **both** Web01 and Web02:
+Run on **both** Web01 and Web02:
 
 ```bash
 # Install Node.js 18.x
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
-# Install PM2 (keeps the app alive after logout/reboot)
+# Install PM2 globally
 sudo npm install -g pm2
 ```
 
 ---
 
-### Step 2 — Deploy the app on Web01 and Web02
+### Step 2 — Deploy the application
 
-Run the following on **both** Web01 and Web02:
+Run on **both** Web01 and Web02:
 
 ```bash
 # Create the app directory
 sudo mkdir -p /var/www/tuto-archive
 sudo chown ubuntu:ubuntu /var/www/tuto-archive
 
-# Copy project files (or clone from repo)
-cd /var/www/tuto-archive
+# Copy project files to the server
+# (scp or clone from the repository)
 
-# Install dependencies
+cd /var/www/tuto-archive
 npm install --production
 
 # Create the .env file with the YouTube API key
@@ -287,12 +318,13 @@ echo "YOUTUBE_API_KEY=your_api_key_here" > .env
 pm2 start server.js --name tuto-archive
 pm2 save
 
-# Enable PM2 to start on reboot
+# Enable PM2 to restart automatically on reboot
 pm2 startup systemd -u ubuntu --hp /home/ubuntu
 # Run the command PM2 prints
 ```
 
-Verify:
+Verify the app is running:
+
 ```bash
 pm2 status
 curl http://localhost:3000   # should return HTML
@@ -300,15 +332,16 @@ curl http://localhost:3000   # should return HTML
 
 ---
 
-### Step 3 — Configure Nginx as a reverse proxy on Web01 and Web02
+### Step 3 — Configure Nginx as a reverse proxy
 
-Run the following on **both** Web01 and Web02:
+Run on **both** Web01 and Web02:
 
 ```bash
 sudo tee /etc/nginx/sites-available/tuto-archive > /dev/null << 'EOF'
 server {
-    listen 80;
-    server_name _;
+    listen 80 default_server;
+    server_name tutoarchive.lancewreal.tech;
+
     location / {
         proxy_pass         http://127.0.0.1:3000;
         proxy_http_version 1.1;
@@ -319,43 +352,44 @@ server {
 }
 EOF
 
-sudo ln -sf /etc/nginx/sites-available/tuto-archive /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default
+sudo ln -sf /etc/nginx/sites-available/tuto-archive /etc/nginx/sites-enabled/tuto-archive
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-The app is now accessible at `http://44.211.45.35` and `http://44.211.161.173`.
-
 ---
 
-### Step 4 — Load balancer on Lb01 (HAProxy)
+### Step 4 — Configure the load balancer (Lb01)
 
-Lb01 uses **HAProxy** which was pre-installed. The active configuration at `/etc/haproxy/haproxy.cfg` is documented in `nginx/load-balancer.conf`.
+Lb01 uses **HAProxy** (pre-installed). The configuration at `/etc/haproxy/haproxy.cfg` handles:
+- HTTP → HTTPS redirect (301)
+- SSL termination using a Let's Encrypt certificate
+- Round-robin distribution between Web01 and Web02
 
-Key sections:
+Key configuration sections:
 
 ```haproxy
-# Redirect HTTP → HTTPS
+# Redirect HTTP to HTTPS
 frontend balancer_http_in
     bind *:80
-    redirect scheme https code 301 if ! { ssl_fc }
+    redirect scheme https code 301 if !{ ssl_fc }
 
-# Accept HTTPS and forward to backend
+# Accept HTTPS — terminate SSL at the load balancer
 frontend balancer_https_in
     bind *:443 ssl crt /etc/ssl/certs/ha_proxy_ssl.pem
     option forwardfor
     default_backend balancer_http_out
 
-# Round-robin between Web01 and Web02
+# Round-robin between the two web servers
 backend balancer_http_out
     balance roundrobin
     server web-01 44.211.45.35:80 check
     server web-02 44.211.161.173:80 check
 ```
 
-To apply changes to HAProxy:
+To test and reload HAProxy:
+
 ```bash
-sudo haproxy -c -f /etc/haproxy/haproxy.cfg   # test config
+sudo haproxy -c -f /etc/haproxy/haproxy.cfg
 sudo systemctl reload haproxy
 ```
 
@@ -364,15 +398,12 @@ sudo systemctl reload haproxy
 ### Step 5 — Verify load balancing
 
 ```bash
-# Hit the load balancer 6 times — both servers should serve traffic
+# Hit the load balancer 6 times — requests should alternate between Web01 and Web02
 for i in $(seq 1 6); do
   curl -sk -o /dev/null -w "Hit $i: %{http_code}\n" https://tutoarchive.lancewreal.tech
 done
 
-# Watch each server's nginx access log while hitting the LB
-# On Web01:
-sudo tail -f /var/log/nginx/access.log
-# On Web02:
+# Tail the nginx access log on each server to confirm traffic distribution
 sudo tail -f /var/log/nginx/access.log
 ```
 
@@ -380,12 +411,11 @@ sudo tail -f /var/log/nginx/access.log
 
 ### Updating the deployment
 
-When you push new code, redeploy on both Web01 and Web02:
+When new code is ready, copy updated files and restart:
 
 ```bash
 cd /var/www/tuto-archive
 # copy updated files, then:
-npm install --production
 pm2 restart tuto-archive
 ```
 
@@ -393,30 +423,38 @@ pm2 restart tuto-archive
 
 ## Credits & Attribution
 
-| Resource | Link |
-|---|---|
-| **YouTube Data API v3** by Google | [developers.google.com/youtube/v3](https://developers.google.com/youtube/v3) |
-| **Bootstrap 5.3.2** by The Bootstrap Authors | [getbootstrap.com](https://getbootstrap.com) |
-| **Bootstrap Icons 1.11.3** by The Bootstrap Authors | [icons.getbootstrap.com](https://icons.getbootstrap.com) |
-| **Express.js** by the OpenJS Foundation | [expressjs.com](https://expressjs.com) |
-| **dotenv** by motdotla | [github.com/motdotla/dotenv](https://github.com/motdotla/dotenv) |
-| **Google Fonts** — Syne & DM Sans | [fonts.google.com](https://fonts.google.com) |
+| Resource | Purpose | Link |
+|---|---|---|
+| **YouTube Data API v3** by Google | Video search and metadata | [developers.google.com/youtube/v3](https://developers.google.com/youtube/v3) |
+| **Bootstrap 5.3.2** by The Bootstrap Authors | UI components, grid, modal | [getbootstrap.com](https://getbootstrap.com) |
+| **Bootstrap Icons 1.11.3** by The Bootstrap Authors | Icons throughout the interface | [icons.getbootstrap.com](https://icons.getbootstrap.com) |
+| **Express.js** by the OpenJS Foundation | Node.js HTTP server and routing | [expressjs.com](https://expressjs.com) |
+| **dotenv** by motdotla | Loading environment variables from `.env` | [github.com/motdotla/dotenv](https://github.com/motdotla/dotenv) |
+| **Google Fonts** — Urbanist & JetBrains Mono | Typography | [fonts.google.com](https://fonts.google.com) |
+| **HAProxy** | Load balancer on Lb01 | [haproxy.org](https://www.haproxy.org) |
+| **PM2** by Unitech | Process manager keeping Node.js alive | [pm2.keymetrics.io](https://pm2.keymetrics.io) |
 
 ---
 
 ## Challenges
 
 **1. Keeping the API key secure**
-The original prototype called the YouTube API directly from the browser, which would have exposed the API key in the JavaScript source. The solution was to add a Node.js/Express backend that acts as a proxy — the browser calls `/api/search` on the server, the server appends the key from `.env`, and the key never reaches the browser.
+The first prototype called the YouTube API directly from the browser, which would have exposed the key in the JavaScript source and network requests. The solution was a Node.js/Express proxy layer: the browser calls `/api/search` on the local server, the server appends the key from `.env`, and the key never reaches the client.
 
 **2. YouTube API quota limits**
-The free YouTube Data API quota is 10,000 units/day, and each search costs ~100 units. Loading all course cards at once would exhaust the quota immediately. The solution was to make course videos **load on demand** (accordion — click to expand), so API calls only happen when a student opens a specific course.
+The free YouTube Data API quota is 10,000 units per day, and each search costs roughly 100 units. Loading all 8 course cards on page load would consume 800 units at once and exhaust the quota in a dozen page loads. The fix was a lazy-loading accordion — course videos are only fetched when a student clicks to open that card, making quota consumption proportional to actual usage.
 
-**3. Handling API timeouts and network errors**
-YouTube API requests can occasionally time out or fail silently. A 10-second timeout was added server-side using `request.setTimeout()`, and a 12-second `AbortController` timeout was added on the browser side. Errors are caught and shown inline rather than leaving the UI in a loading state.
+**3. Filtering out YouTube Shorts**
+YouTube Shorts (≤60 second vertical videos) were appearing in course results and failing to play properly in the embedded player. The YouTube Search API has no direct "exclude Shorts" parameter, so three layers of filtering were combined: `videoDuration=medium` (API-level, excludes sub-4-minute videos), `-#shorts` appended to queries (instructs YouTube's ranking to deprioritise Shorts), and a server-side title filter that drops any result whose title contains the word "shorts".
 
-**4. Sort order and client-side filtering**
-Sorting by relevance vs. date requires a different YouTube API `order` parameter, so a re-fetch is triggered when the sort changes. Year filtering is done client-side on the already-fetched results to avoid using extra API quota.
+**4. Handling API timeouts and network errors**
+YouTube API requests can time out silently, especially under load. A 10-second server-side timeout was added using `request.setTimeout()`, and a 12-second `AbortController` timeout was added on the browser side. Both caught states display a clear inline message rather than leaving the UI frozen on a skeleton loader.
 
-**5. Deployment across two servers**
-Both web servers need the same `.env` file with the YouTube API key. Since `.env` is git-ignored, it must be created manually on each server after cloning. PM2 is used to keep the Node process alive across SSH session disconnects and server reboots.
+**5. Offline detection**
+If a student is on a poor connection, API calls would fail with cryptic network errors. Adding `navigator.onLine` event listeners lets the app catch the transition, display a red offline banner, and block new searches with an explanatory toast — giving clear feedback instead of a silent failure.
+
+**6. Load balancer conflicts with other hosted sites**
+The Lb01 and web servers were shared infrastructure. On the web servers, an alphabetically earlier Nginx config (`portfolio`) was being loaded as the default server, serving a different site instead of Tuto Archive. The fix was setting `listen 80 default_server` and an explicit `server_name` in the Tuto Archive Nginx config to ensure it took priority.
+
+**7. Accordion and CSS grid stretching**
+When one course card in the grid expanded to show its videos, the other cards in the same grid row stretched to match the expanded height. This was fixed by adding `align-items: start` to the `.course-grid` CSS rule, which prevents CSS Grid from stretching items to fill row height.
